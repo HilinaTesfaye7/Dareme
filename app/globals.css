@@ -173,6 +173,66 @@
   animation: float 3s ease-in-out infinite;
 }
 
+/* Video scroll animations */
+@keyframes video-slide-up {
+  from {
+    transform: translateY(100vh);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes video-slide-down {
+  from {
+    transform: translateY(-100vh);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-video-slide-up {
+  animation: video-slide-up 0.4s ease-out;
+}
+
+.animate-video-slide-down {
+  animation: video-slide-down 0.4s ease-out;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.6s ease-out;
+}
+
+/* Smooth scroll behavior */
+.scroll-smooth {
+  scroll-behavior: smooth;
+}
+
+/* Video container transitions */
+.video-transition {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.video-transition.scrolling {
+  transform: scale(0.95);
+}
+
 /* Gradient backgrounds */
 .bg-gradient-primary {
   background: linear-gradient(135deg, oklch(0.65 0.25 340), oklch(0.6 0.2 240));
@@ -184,4 +244,20 @@
 
 .bg-gradient-success {
   background: linear-gradient(135deg, oklch(0.7 0.15 180), oklch(0.6 0.2 240));
+}
+
+/* Video loading shimmer */
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.shimmer {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200px 100%;
+  animation: shimmer 1.5s infinite;
 }

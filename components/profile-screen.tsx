@@ -1,10 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Settings, Share, Trophy, Zap, Heart, Play, Star } from "lucide-react"
+import { videoStore, type RecordedVideo } from "@/lib/video-store"
 
 const userStats = {
   name: "Alex Johnson",
@@ -31,9 +32,9 @@ const badges = [
   { id: 8, name: "Viral Star", icon: "🌟", description: "10,000+ likes on a dare", earned: false },
 ]
 
-const recentDares = [
+const mockDares = [
   {
-    id: 1,
+    id: "mock1",
     thumbnail: "/placeholder.svg?height=120&width=120",
     title: "Epic dance battle in the park",
     likes: 234,
@@ -41,25 +42,26 @@ const recentDares = [
     date: "2 days ago",
   },
   {
-    id: 2,
+    id: "mock2",
     thumbnail: "/placeholder.svg?height=120&width=120",
     title: "Singing opera in a coffee shop",
     likes: 189,
     views: 890,
     date: "5 days ago",
   },
-  {
-    id: 3,
-    thumbnail: "/placeholder.svg?height=120&width=120",
-    title: "Making strangers laugh challenge",
-    likes: 456,
-    views: 2100,
-    date: "1 week ago",
-  },
 ]
 
 export function ProfileScreen() {
   const [selectedTab, setSelectedTab] = useState<"dares" | "badges">("dares")
+  const [userVideos, setUserVideos] = useState<RecordedVideo[]>([])
+
+  useEffect(() => {
+    const unsubscribe = videoStore.subscribe(() => {
+      setUserVideos(videoStore.getUserVideos("you"))
+    })
+    setUserVideos(videoStore.getUserVideos("you"))
+    return unsubscribe
+  }, [])
 
   return (
     <div className="h-full bg-background overflow-y-auto">
@@ -182,7 +184,42 @@ export function ProfileScreen() {
         {/* Content */}
         {selectedTab === "dares" ? (
           <div className="grid grid-cols-2 gap-3">
-            {recentDares.map((dare) => (
+            {userVideos.map((video) => (
+              <Card key={video.id} className="overflow-hidden hover:shadow-md transition-shadow">
+                <div className="relative">
+                  <video
+                    src={video.video_url}
+                    className="w-full h-32 object-cover"
+                    muted
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/40 text-white hover:bg-black/60"
+                  >
+                    <Play className="w-4 h-4" />
+                  </Button>
+                  <div className="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full">
+                    New
+                  </div>
+                </div>
+                <CardContent className="p-3">
+                  <h4 className="font-semibold text-sm mb-2 line-clamp-2">{video.dare_text}</h4>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <span className="flex items-center gap-1">
+                        <Heart className="w-3 h-3" />
+                        {video.likes_count}
+                      </span>
+                      <span>0 views</span>
+                    </div>
+                    <span>Just now</span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+            {mockDares.map((dare) => (
               <Card key={dare.id} className="overflow-hidden hover:shadow-md transition-shadow">
                 <div className="relative">
                   <img

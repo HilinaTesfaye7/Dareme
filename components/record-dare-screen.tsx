@@ -144,18 +144,26 @@ export function RecordDareScreen({
     setError(null)
 
     try {
-      // Mock upload - simulate video upload
-      await new Promise((resolve) => setTimeout(resolve, 2000))
-
-      console.log("[v0] Mock video upload:", {
-        dareText,
-        dareId,
-        videoSize: recordedChunksRef.current.length,
+      // Create video blob and URL
+      const videoBlob = new Blob(recordedChunksRef.current, { type: 'video/webm' })
+      const videoUrl = URL.createObjectURL(videoBlob)
+      
+      // Add to video store
+      const { videoStore } = await import('@/lib/video-store')
+      videoStore.addVideo({
+        video_url: videoUrl,
+        dare_text: dareText,
+        user: {
+          username: "you",
+          display_name: "You",
+          avatar_url: "/teen-avatar.png"
+        }
       })
 
-      onBack() // Return to previous screen after successful upload
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+      onBack()
     } catch (err) {
-      console.error("[v0] Upload error:", err)
+      console.error("Upload error:", err)
       setError("Failed to upload video")
     } finally {
       setIsUploading(false)

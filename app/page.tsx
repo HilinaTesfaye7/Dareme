@@ -10,21 +10,28 @@ import { BottomNavigation } from "@/components/bottom-navigation"
 
 export default function DareMeApp() {
   const [activeScreen, setActiveScreen] = useState<"home" | "send" | "record" | "leaderboard" | "profile">("home")
+  const [currentDare, setCurrentDare] = useState<string>("")
 
   const renderScreen = () => {
     switch (activeScreen) {
       case "home":
-        return <HomeFeed onSendDare={() => setActiveScreen("send")} onRecord={() => setActiveScreen("record")} />
+        return <HomeFeed onSendDare={() => setActiveScreen("send")} onRecord={(dareText) => {
+          setCurrentDare(dareText)
+          setActiveScreen("record")
+        }} />
       case "send":
         return <SendDareScreen onBack={() => setActiveScreen("home")} />
       case "record":
-        return <RecordDareScreen onBack={() => setActiveScreen("home")} />
+        return <RecordDareScreen onBack={() => setActiveScreen("home")} dareText={currentDare} />
       case "leaderboard":
         return <LeaderboardScreen />
       case "profile":
         return <ProfileScreen />
       default:
-        return <HomeFeed onSendDare={() => setActiveScreen("send")} onRecord={() => setActiveScreen("record")} />
+        return <HomeFeed onSendDare={() => setActiveScreen("send")} onRecord={(dareText) => {
+          setCurrentDare(dareText)
+          setActiveScreen("record")
+        }} />
     }
   }
 

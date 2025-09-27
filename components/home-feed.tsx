@@ -2,20 +2,22 @@
 
 import type React from "react"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
-import { Heart, MessageCircle, Share, Plus, Play, Pause } from "lucide-react"
+import { Heart, MessageCircle, Share, Plus } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { VideoPlayer } from "@/components/video-player"
+import { videoStore, type RecordedVideo } from "@/lib/video-store"
 
 interface HomeFeedProps {
   onSendDare: () => void
-  onRecord: () => void
+  onRecord: (dareText: string) => void
 }
 
 const mockVideos = [
   {
     id: "1",
-    video_url: "/teen-doing-dance-dare.jpg",
+    video_url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
     dare_text: "Do the most epic dance move you know for 30 seconds!",
     likes_count: 1247,
     comments_count: 89,
@@ -28,7 +30,7 @@ const mockVideos = [
   },
   {
     id: "2",
-    video_url: "/teen-doing-funny-challenge.jpg",
+    video_url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
     dare_text: "Try to say the alphabet backwards while doing jumping jacks!",
     likes_count: 892,
     comments_count: 56,
@@ -41,7 +43,7 @@ const mockVideos = [
   },
   {
     id: "3",
-    video_url: "/placeholder-085xr.png",
+    video_url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
     dare_text: "Create a 10-second story using only objects around you!",
     likes_count: 2156,
     comments_count: 134,
@@ -54,7 +56,7 @@ const mockVideos = [
   },
   {
     id: "4",
-    video_url: "/teen-doing-dance-dare.jpg",
+    video_url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
     dare_text: "Sing your favorite song in a funny voice for 15 seconds!",
     likes_count: 1834,
     comments_count: 92,
@@ -67,7 +69,7 @@ const mockVideos = [
   },
   {
     id: "5",
-    video_url: "/teen-doing-funny-challenge.jpg",
+    video_url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
     dare_text: "Do 10 push-ups while reciting your favorite movie quote!",
     likes_count: 967,
     comments_count: 78,
@@ -87,12 +89,43 @@ export function HomeFeed({ onSendDare, onRecord }: HomeFeedProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [touchStart, setTouchStart] = useState<number | null>(null)
   const [touchEnd, setTouchEnd] = useState<number | null>(null)
+  const [isScrolling, setIsScrolling] = useState(false)
+  const [scrollDirection, setScrollDirection] = useState<'up' | 'down' | null>(null)
+  const scrollTimeoutRef = useRef<NodeJS.Timeout>()
+  const lastVideoRef = useRef(currentVideo)
+  const [recordedVideos, setRecordedVideos] = useState<RecordedVideo[]>([])
 
   const minSwipeDistance = 50
+  const allVideos = [...recordedVideos, ...mockVideos]
+
+  const handleScrollStart = useCallback(() => {
+    setIsScrolling(true)
+    setIsPlaying(false)
+    
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current)
+    }
+  }, [])
+
+  const changeVideo = useCallback((newIndex: number, direction: 'up' | 'down') => {
+    if (newIndex >= 0 && newIndex < allVideos.length) {
+      setScrollDirection(direction)
+      setCurrentVideo(newIndex)
+      lastVideoRef.current = newIndex
+    }
+  }, [allVideos.length])
+
+  const handleScrollEnd = useCallback(() => {
+    scrollTimeoutRef.current = setTimeout(() => {
+      setIsScrolling(false)
+      setIsPlaying(true)
+    }, 150)
+  }, [])
 
   const onTouchStart = (e: React.TouchEvent) => {
     setTouchEnd(null)
     setTouchStart(e.targetTouches[0].clientY)
+    handleScrollStart()
   }
 
   const onTouchMove = (e: React.TouchEvent) => {
@@ -106,29 +139,71 @@ export function HomeFeed({ onSendDare, onRecord }: HomeFeedProps) {
     const isUpSwipe = distance > minSwipeDistance
     const isDownSwipe = distance < -minSwipeDistance
 
-    if (isUpSwipe && currentVideo < mockVideos.length - 1) {
-      setCurrentVideo(currentVideo + 1)
+    if (isUpSwipe && currentVideo < allVideos.length - 1) {
+      changeVideo(currentVideo + 1, 'up')
     }
     if (isDownSwipe && currentVideo > 0) {
-      setCurrentVideo(currentVideo - 1)
+      changeVideo(currentVideo - 1, 'down')
     }
+    
+    handleScrollEnd()
   }
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "ArrowUp" && currentVideo > 0) {
-        setCurrentVideo(currentVideo - 1)
-      } else if (e.key === "ArrowDown" && currentVideo < mockVideos.length - 1) {
-        setCurrentVideo(currentVideo + 1)
+        handleScrollStart()
+        changeVideo(currentVideo - 1, 'down')
+        handleScrollEnd()
+      } else if (e.key === "ArrowDown" && currentVideo < allVideos.length - 1) {
+        handleScrollStart()
+        changeVideo(currentVideo + 1, 'up')
+        handleScrollEnd()
       } else if (e.key === " ") {
         e.preventDefault()
         setIsPlaying(!isPlaying)
       }
     }
 
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      handleScrollStart()
+      
+      if (e.deltaY > 0 && currentVideo < allVideos.length - 1) {
+        changeVideo(currentVideo + 1, 'up')
+      } else if (e.deltaY < 0 && currentVideo > 0) {
+        changeVideo(currentVideo - 1, 'down')
+      }
+      
+      handleScrollEnd()
+    }
+
     window.addEventListener("keydown", handleKeyDown)
-    return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [currentVideo, isPlaying])
+    window.addEventListener("wheel", handleWheel, { passive: false })
+    
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown)
+      window.removeEventListener("wheel", handleWheel)
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current)
+      }
+    }
+  }, [currentVideo, isPlaying, handleScrollStart, handleScrollEnd, changeVideo])
+
+  useEffect(() => {
+    if (scrollDirection) {
+      const timer = setTimeout(() => setScrollDirection(null), 400)
+      return () => clearTimeout(timer)
+    }
+  }, [scrollDirection])
+
+  useEffect(() => {
+    const unsubscribe = videoStore.subscribe(() => {
+      setRecordedVideos(videoStore.getVideos())
+    })
+    setRecordedVideos(videoStore.getVideos())
+    return unsubscribe
+  }, [])
 
   const handleLike = (videoId: string) => {
     setLikedVideos((prev) => {
@@ -142,7 +217,7 @@ export function HomeFeed({ onSendDare, onRecord }: HomeFeedProps) {
     })
   }
 
-  const currentVideoData = mockVideos[currentVideo]
+  const currentVideoData = allVideos[currentVideo]
 
   return (
     <div
@@ -153,7 +228,7 @@ export function HomeFeed({ onSendDare, onRecord }: HomeFeedProps) {
       onTouchEnd={onTouchEnd}
     >
       <div className="absolute right-2 top-1/2 transform -translate-y-1/2 z-20 flex flex-col gap-1">
-        {mockVideos.map((_, index) => (
+        {allVideos.map((_, index) => (
           <div
             key={index}
             className={`w-1 h-8 rounded-full transition-all ${index === currentVideo ? "bg-white" : "bg-white/30"}`}
@@ -161,32 +236,27 @@ export function HomeFeed({ onSendDare, onRecord }: HomeFeedProps) {
         ))}
       </div>
 
-      <div className="absolute inset-0">
-        <img
-          src={currentVideoData.video_url || "/placeholder.svg"}
-          alt="Dare video"
-          className="w-full h-full object-cover transition-transform duration-300"
+      <div className={`absolute inset-0 video-transition ${
+        isScrolling ? 'scrolling' : ''
+      } ${
+        scrollDirection === 'up' ? 'animate-video-slide-up' : 
+        scrollDirection === 'down' ? 'animate-video-slide-down' : ''
+      }`}>
+        <VideoPlayer
+          src={currentVideoData.video_url}
+          isActive={true}
+          isPlaying={isPlaying && !isScrolling}
+          onPlayPause={() => setIsPlaying(!isPlaying)}
+          className="transition-all duration-300"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
-      </div>
-
-      {/* Play/Pause Overlay */}
-      <div className="absolute inset-0 flex items-center justify-center">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="w-16 h-16 rounded-full bg-black/20 hover:bg-black/40 text-white"
-          onClick={() => setIsPlaying(!isPlaying)}
-        >
-          {isPlaying ? <Pause className="w-8 h-8" /> : <Play className="w-8 h-8" />}
-        </Button>
       </div>
 
       {/* Top Header */}
       <div className="absolute top-0 left-0 right-0 z-10 p-4 pt-12">
         <div className="flex items-center justify-between">
           <div className="text-white font-bold text-xl">
-            <span className="bg-gradient-primary bg-clip-text text-transparent">DareMe</span>
+            <span className="bg-gradient-primary bg-clip-text text-transparent"></span>
           </div>
           <Button
             onClick={onSendDare}
@@ -201,7 +271,8 @@ export function HomeFeed({ onSendDare, onRecord }: HomeFeedProps) {
       {currentVideo === 0 && (
         <div className="absolute top-1/3 left-1/2 transform -translate-x-1/2 z-10 text-center">
           <div className="bg-black/50 backdrop-blur-sm rounded-2xl p-4 text-white animate-fade-in">
-            <p className="text-sm">👆 Swipe up/down or use arrow keys to browse dares</p>
+            <p className="text-sm font-medium"></p>
+            <p className="text-xs mt-1 opacity-80"></p>
           </div>
         </div>
       )}
@@ -282,7 +353,7 @@ export function HomeFeed({ onSendDare, onRecord }: HomeFeedProps) {
       {/* Record Button */}
       <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2 z-10">
         <Button
-          onClick={onRecord}
+          onClick={() => onRecord(currentVideoData.dare_text)}
           className="w-16 h-16 rounded-full bg-gradient-energy hover:bg-gradient-energy/90 text-white shadow-2xl animate-float"
         >
           <div className="w-8 h-8 rounded-full bg-white/90" />
@@ -292,17 +363,20 @@ export function HomeFeed({ onSendDare, onRecord }: HomeFeedProps) {
       <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-10 flex items-center gap-2">
         <span className="text-white/60 text-xs">{currentVideo + 1}</span>
         <div className="flex gap-1">
-          {mockVideos.map((_, index) => (
+          {allVideos.map((_, index) => (
             <button
               key={index}
-              onClick={() => setCurrentVideo(index)}
+              onClick={() => {
+                const direction = index > currentVideo ? 'up' : 'down'
+                changeVideo(index, direction)
+              }}
               className={`w-1.5 h-1.5 rounded-full transition-all ${
                 index === currentVideo ? "bg-white w-4" : "bg-white/40"
               }`}
             />
           ))}
         </div>
-        <span className="text-white/60 text-xs">of {mockVideos.length}</span>
+        <span className="text-white/60 text-xs">of {allVideos.length}</span>
       </div>
     </div>
   )
