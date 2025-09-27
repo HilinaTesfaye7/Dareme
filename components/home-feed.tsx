@@ -227,14 +227,7 @@ export function HomeFeed({ onSendDare, onRecord }: HomeFeedProps) {
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
-      <div className="absolute right-2 top-1/2 transform -translate-y-1/2 z-20 flex flex-col gap-1">
-        {allVideos.map((_, index) => (
-          <div
-            key={index}
-            className={`w-1 h-8 rounded-full transition-all ${index === currentVideo ? "bg-white" : "bg-white/30"}`}
-          />
-        ))}
-      </div>
+
 
       <div className={`absolute inset-0 video-transition ${
         isScrolling ? 'scrolling' : ''
@@ -351,7 +344,7 @@ export function HomeFeed({ onSendDare, onRecord }: HomeFeedProps) {
       </div>
 
       {/* Record Button */}
-      <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2 z-10">
+      <div className="absolute bottom-5 left-1/2 transform -translate-x-1/2 z-10">
         <Button
           onClick={() => onRecord(currentVideoData.dare_text)}
           className="w-16 h-16 rounded-full bg-gradient-energy hover:bg-gradient-energy/90 text-white shadow-2xl animate-float"
@@ -360,24 +353,7 @@ export function HomeFeed({ onSendDare, onRecord }: HomeFeedProps) {
         </Button>
       </div>
 
-      <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-10 flex items-center gap-2">
-        <span className="text-white/60 text-xs">{currentVideo + 1}</span>
-        <div className="flex gap-1">
-          {allVideos.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => {
-                const direction = index > currentVideo ? 'up' : 'down'
-                changeVideo(index, direction)
-              }}
-              className={`w-1.5 h-1.5 rounded-full transition-all ${
-                index === currentVideo ? "bg-white w-4" : "bg-white/40"
-              }`}
-            />
-          ))}
-        </div>
-        <span className="text-white/60 text-xs">of {allVideos.length}</span>
-      </div>
+
     </div>
   )
 }
